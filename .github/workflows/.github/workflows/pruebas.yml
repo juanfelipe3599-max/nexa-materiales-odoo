@@ -1,0 +1,113 @@
+# Pruebas del módulo nexa_materiales en GitHub Actions.
+#  - "prueba-automatica": en cada cambio. Construye la misma imagen que usa Render y corre
+#    las pruebas del módulo (100 -> 130 y el ciclo de compra encadenado).
+#  - "demo-api": en cada cambio. Levanta esa imagen con obras y usuarios demo y ataca la API
+#    por XML-RPC como lo haría un script o un agente: aislamiento por obra, transiciones
+#    inválidas, 10 envíos simultáneos y reglas de la orden de compra.
+#  - "demo-instancia": a mano, contra la URL publicada (claves en los secretos del repositorio).
+name: pruebas
+
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "URL publicada (ej. https://nexa-materiales.onrender.com). Vacío = solo pruebas internas"
+        required: false
+        default: ""
+
+env:
+  CI_ENV: >-
+    -e DB_HOST=localhost -e DB_USER=odoo -e DB_PASSWORD=odoo -e DB_NAME=nexa_ci -e ODOO_ADMIN_PASSWD=ci
+    -e NEXA_COMPRAS_LOGIN=compras@ci -e NEXA_COMPRAS_PASSWORD=ci-compras
+    -e NEXA_CONSULTA_LOGIN=consulta@ci -e NEXA_CONSULTA_PASSWORD=ci-consulta
+    -e NEXA_RESIDENTE1_LOGIN=residente1@ci -e NEXA_RESIDENTE1_PASSWORD=ci-res1
+    -e NEXA_RESIDENTE2_LOGIN=residente2@ci -e NEXA_RESIDENTE2_PASSWORD=ci-res2
+    -e NEXA_GERENCIA_LOGIN=gerencia@ci -e NEXA_GERENCIA_PASSWORD=ci-ger
+    -e NEXA_TESORERIA_LOGIN=tesoreria@ci -e NEXA_TESORERIA_PASSWORD=ci-tes
+
+jobs:
+  prueba-automatica:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: odoo, POSTGRES_PASSWORD: odoo, POSTGRES_DB: nexa_ci }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U odoo" --health-interval 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construir la imagen (la misma de Render)
+        run: docker build -t nexa .
+      - name: "Pruebas: precio vigente 100 -> 130 y ciclo de compra encadenado"
+        run: |
+          docker run --rm --network host $CI_ENV \
+            nexa -u nexa_materiales --test-enable --test-tags /nexa_materiales --stop-after-init \
+            2>&1 | tee test.log
+          grep "odoo.tests.result" test.log
+          grep -q "0 failed, 0 error(s) of 2 tests" test.log
+
+  demo-api:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: odoo, POSTGRES_PASSWORD: odoo, POSTGRES_DB: nexa_ci }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U odoo" --health-interval 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construir y levantar la instancia con obras y usuarios demo
+        run: |
+          docker build -t nexa .
+          docker run -d --name nexa --network host $CI_ENV -e NEXA_DATOS_DEMO=1 -e PORT=8069 nexa
+          for i in $(seq 1 60); do curl -sf localhost:8069/web/health && exit 0; sleep 5; done
+          docker logs nexa | tail -50; exit 1
+      - name: Sacar los scripts del paquete
+        run: python3 -c "import zipfile; zipfile.ZipFile('nexa_bundle.zip').extractall('paquete')"
+      - name: "API: aislamiento por obra, transiciones, concurrencia, orden de compra"
+        env:
+          ODOO_URL: http://localhost:8069
+          ODOO_DB: nexa_ci
+          NEXA_COMPRAS_LOGIN: compras@ci
+          NEXA_COMPRAS_PASSWORD: ci-compras
+          NEXA_RESIDENTE1_LOGIN: residente1@ci
+          NEXA_RESIDENTE1_PASSWORD: ci-res1
+          NEXA_RESIDENTE2_LOGIN: residente2@ci
+          NEXA_RESIDENTE2_PASSWORD: ci-res2
+          NEXA_GERENCIA_LOGIN: gerencia@ci
+          NEXA_GERENCIA_PASSWORD: ci-ger
+          NEXA_TESORERIA_LOGIN: tesoreria@ci
+          NEXA_TESORERIA_PASSWORD: ci-tes
+        run: python3 paquete/scripts/demo_ciclo_api.py
+
+  demo-instancia:
+    if: github.event_name == 'workflow_dispatch' && inputs.url != ''
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Despertar la instancia (el plan gratis se duerme)
+        run: |
+          for i in $(seq 1 40); do curl -sf "${{ inputs.url }}/web/health" && exit 0; sleep 15; done
+          echo "La instancia no respondió"; exit 1
+      - name: Sacar los scripts del paquete
+        run: python3 -c "import zipfile; zipfile.ZipFile('nexa_bundle.zip').extractall('paquete')"
+      - name: "Ciclo de compra por API contra la URL publicada"
+        env:
+          ODOO_URL: ${{ inputs.url }}
+          ODOO_DB: nexa_materiales
+          NEXA_COMPRAS_LOGIN: compras@nexa.demo
+          NEXA_COMPRAS_PASSWORD: ${{ secrets.NEXA_COMPRAS_PASSWORD }}
+          NEXA_CONSULTA_LOGIN: consulta@nexa.demo
+          NEXA_CONSULTA_PASSWORD: ${{ secrets.NEXA_CONSULTA_PASSWORD }}
+          NEXA_RESIDENTE1_LOGIN: residente1@nexa.demo
+          NEXA_RESIDENTE1_PASSWORD: ${{ secrets.NEXA_RESIDENTE1_PASSWORD }}
+          NEXA_RESIDENTE2_LOGIN: residente2@nexa.demo
+          NEXA_RESIDENTE2_PASSWORD: ${{ secrets.NEXA_RESIDENTE2_PASSWORD }}
+          NEXA_GERENCIA_LOGIN: gerencia@nexa.demo
+          NEXA_GERENCIA_PASSWORD: ${{ secrets.NEXA_GERENCIA_PASSWORD }}
+          NEXA_TESORERIA_LOGIN: tesoreria@nexa.demo
+          NEXA_TESORERIA_PASSWORD: ${{ secrets.NEXA_TESORERIA_PASSWORD }}
+        run: |
+          python3 paquete/scripts/demo_permisos_api.py
+          python3 paquete/scripts/demo_ciclo_api.py
