@@ -1,0 +1,58 @@
+# Despliegue en un servidor propio (VPS Ubuntu con Docker).
+# Todas las credenciales vienen de deploy/.env (no se versiona; ver .env.example).
+name: nexa-materiales
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${ODOO_DB}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 5s
+      retries: 10
+
+  odoo:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${ODOO_DB}
+      NEXA_ACTUALIZAR: ${NEXA_ACTUALIZAR:-0}
+      ODOO_ADMIN_PASSWD: ${ODOO_ADMIN_PASSWD}
+      NEXA_EMPRESA: ${NEXA_EMPRESA}
+      NEXA_COMPRAS_LOGIN: ${NEXA_COMPRAS_LOGIN}
+      NEXA_COMPRAS_PASSWORD: ${NEXA_COMPRAS_PASSWORD}
+      NEXA_CONSULTA_LOGIN: ${NEXA_CONSULTA_LOGIN}
+      NEXA_CONSULTA_PASSWORD: ${NEXA_CONSULTA_PASSWORD}
+    volumes:
+      - odoo-data:/var/lib/odoo
+
+  # HTTPS automático (Let's Encrypt) delante de Odoo.
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [odoo]
+    ports: ["80:80", "443:443"]
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+
+volumes:
+  db-data:
+  odoo-data:
+  caddy-data:

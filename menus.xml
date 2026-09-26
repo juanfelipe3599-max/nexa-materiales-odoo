@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_nexa_materiales_root" name="Materiales"
+              web_icon="nexa_materiales,static/description/icon.png"
+              groups="group_materiales_consulta" sequence="30"/>
+    <menuitem id="menu_nexa_material" name="Catálogo" parent="menu_nexa_materiales_root"
+              action="nexa_material_action" sequence="10"/>
+    <menuitem id="menu_nexa_precio_compra" name="Precios de compra" parent="menu_nexa_materiales_root"
+              action="nexa_precio_compra_action" sequence="20"/>
+</odoo>

@@ -1,0 +1,40 @@
+# Despliegue gratuito en Render (Blueprint). Crea la base PostgreSQL y el
+# servicio web con Odoo; las claves se generan solas y quedan en el panel.
+# Limitaciones del plan gratis: el servicio se duerme tras 15 min sin tráfico
+# (el primer acceso luego tarda) y la base gratuita vence a los 30 días.
+databases:
+  - name: nexa-db
+    plan: free
+    databaseName: nexa_materiales
+    user: nexa
+
+services:
+  - type: web
+    name: nexa-materiales
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /web/health
+    envVars:
+      - key: DB_HOST
+        fromDatabase: { name: nexa-db, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: nexa-db, property: port }
+      - key: DB_USER
+        fromDatabase: { name: nexa-db, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: nexa-db, property: password }
+      - key: DB_NAME
+        fromDatabase: { name: nexa-db, property: database }
+      - key: ODOO_ADMIN_PASSWD
+        generateValue: true
+      - key: NEXA_EMPRESA
+        value: Construcciones Durán SAS (demo)
+      - key: NEXA_COMPRAS_LOGIN
+        value: compras@nexa.demo
+      - key: NEXA_COMPRAS_PASSWORD
+        generateValue: true
+      - key: NEXA_CONSULTA_LOGIN
+        value: consulta@nexa.demo
+      - key: NEXA_CONSULTA_PASSWORD
+        generateValue: true

@@ -1,0 +1,31 @@
+# Corre la demostración de permisos contra la instancia desplegada (manual).
+# Requiere los secretos NEXA_COMPRAS_PASSWORD y NEXA_CONSULTA_PASSWORD
+# (se copian del panel de Render → Environment).
+name: demo-permisos-api
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "URL de la instancia (ej. https://nexa-materiales.onrender.com)"
+        required: true
+      db:
+        description: "Nombre de la base"
+        default: nexa_materiales
+
+jobs:
+  demo:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Despertar la instancia (plan gratis se duerme)
+        run: for i in $(seq 1 30); do curl -sf "${{ inputs.url }}/web/health" && break; sleep 10; done
+      - name: Consulta intenta escribir por la API
+        env:
+          ODOO_URL: ${{ inputs.url }}
+          ODOO_DB: ${{ inputs.db }}
+          NEXA_COMPRAS_LOGIN: compras@nexa.demo
+          NEXA_COMPRAS_PASSWORD: ${{ secrets.NEXA_COMPRAS_PASSWORD }}
+          NEXA_CONSULTA_LOGIN: consulta@nexa.demo
+          NEXA_CONSULTA_PASSWORD: ${{ secrets.NEXA_CONSULTA_PASSWORD }}
+        run: python3 scripts/demo_permisos_api.py

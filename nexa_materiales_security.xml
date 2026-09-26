@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="module_category_nexa_materiales" model="ir.module.category">
+        <field name="name">Materiales NEXA</field>
+        <field name="description">Acceso al catálogo de materiales y precios de compra.</field>
+        <field name="sequence">40</field>
+    </record>
+
+    <!-- Perfil de solo lectura -->
+    <record id="group_materiales_consulta" model="res.groups">
+        <field name="name">Consulta</field>
+        <field name="category_id" ref="module_category_nexa_materiales"/>
+        <field name="comment">Lee materiales y precios. No puede crear, modificar ni archivar.</field>
+    </record>
+
+    <!-- Perfil de lectura y escritura; incluye todo lo de Consulta -->
+    <record id="group_materiales_compras" model="res.groups">
+        <field name="name">Compras</field>
+        <field name="category_id" ref="module_category_nexa_materiales"/>
+        <field name="implied_ids" eval="[Command.link(ref('group_materiales_consulta'))]"/>
+        <field name="comment">Crea y edita materiales, registra precios de compra y archiva materiales.</field>
+        <field name="users" eval="[Command.link(ref('base.user_admin'))]"/>
+    </record>
+</odoo>

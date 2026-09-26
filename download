@@ -1,0 +1,6 @@
+deploy/.env
+.env*
+!deploy/.env.example
+__pycache__/
+*.pyc
+shots*/

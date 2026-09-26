@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="nexa_material_view_list" model="ir.ui.view">
+        <field name="name">nexa.material.list</field>
+        <field name="model">nexa.material</field>
+        <field name="arch" type="xml">
+            <list string="Materiales" decoration-danger="ultima_compra_es_desvio" decoration-muted="not active">
+                <field name="codigo"/>
+                <field name="nombre"/>
+                <field name="unidad_medida"/>
+                <field name="categoria" optional="show"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="tiene_precio" column_invisible="True"/>
+                <field name="active" column_invisible="True"/>
+                <field name="precio_vigente" invisible="not tiene_precio"/>
+                <field name="fecha_precio_vigente" optional="show"/>
+                <field name="ultima_compra_es_desvio" string="Desvío" widget="boolean"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Tarjetas para celular -->
+    <record id="nexa_material_view_kanban" model="ir.ui.view">
+        <field name="name">nexa.material.kanban</field>
+        <field name="model">nexa.material</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="currency_id"/>
+                <field name="tiene_precio"/>
+                <field name="ultima_compra_es_desvio"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between">
+                            <field name="codigo" class="fw-bold"/>
+                            <span t-if="record.ultima_compra_es_desvio.raw_value" class="badge text-bg-danger">Desvío</span>
+                        </div>
+                        <field name="nombre"/>
+                        <div class="d-flex justify-content-between text-muted">
+                            <span><field name="unidad_medida"/></span>
+                            <span t-if="record.tiene_precio.raw_value"><field name="precio_vigente"/></span>
+                            <span t-else="">Sin precio</span>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="nexa_material_view_form" model="ir.ui.view">
+        <field name="name">nexa.material.form</field>
+        <field name="model">nexa.material</field>
+        <field name="arch" type="xml">
+            <form string="Material">
+                <sheet>
+                    <widget name="web_ribbon" title="Archivado" bg_color="text-bg-secondary" invisible="active"/>
+                    <div class="alert alert-danger mb-3" role="alert" invisible="not ultima_compra_es_desvio">
+                        La última compra de este material varía más de 15 % frente a la anterior.
+                    </div>
+                    <div class="oe_title">
+                        <label for="nombre"/>
+                        <h1><field name="nombre" placeholder="Ej. Cemento gris uso general"/></h1>
+                    </div>
+                    <group>
+                        <group string="Identificación">
+                            <field name="codigo" placeholder="Ej. MAT-0001"/>
+                            <field name="unidad_medida" placeholder="kg, m3, und, bulto…"/>
+                            <field name="categoria"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                        <group string="Precio vigente (calculado)">
+                            <field name="currency_id" invisible="1"/>
+                            <field name="tiene_precio" invisible="1"/>
+                            <field name="precio_vigente" invisible="not tiene_precio"/>
+                            <div colspan="2" class="text-muted" invisible="tiene_precio">
+                                Sin compras registradas: el material aún no tiene precio.
+                            </div>
+                            <field name="fecha_precio_vigente" invisible="not tiene_precio"/>
+                            <field name="proveedor_precio_vigente" invisible="not tiene_precio"/>
+                            <field name="ultima_compra_es_desvio" invisible="not tiene_precio"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Precios de compra" name="compras">
+                            <field name="compra_ids" context="{'default_material_id': id}">
+                                <list editable="top" decoration-danger="es_desvio" default_order="fecha desc, id desc">
+                                    <field name="fecha"/>
+                                    <field name="proveedor"/>
+                                    <field name="cantidad"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                    <field name="precio_unitario"/>
+                                    <field name="variacion_pct"/>
+                                    <field name="es_desvio" widget="boolean"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="nexa_material_view_search" model="ir.ui.view">
+        <field name="name">nexa.material.search</field>
+        <field name="model">nexa.material</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="codigo"/>
+                <field name="nombre"/>
+                <field name="categoria"/>
+                <filter name="desvio" string="Última compra en desvío" domain="[('ultima_compra_es_desvio', '=', True)]"/>
+                <filter name="sin_precio" string="Sin precio" domain="[('tiene_precio', '=', False)]"/>
+                <separator/>
+                <filter name="archivados" string="Archivados" domain="[('active', '=', False)]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_categoria" string="Categoría" context="{'group_by': 'categoria'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="nexa_material_action" model="ir.actions.act_window">
+        <field name="name">Materiales</field>
+        <field name="res_model">nexa.material</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="mobile_view_mode">kanban</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aún no hay materiales en el catálogo</p>
+            <p>Cree el primer material con su código único y unidad de medida.
+               Luego registre sus compras para que tenga precio vigente.</p>
+        </field>
+    </record>
+</odoo>

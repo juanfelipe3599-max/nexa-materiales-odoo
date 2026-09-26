@@ -1,0 +1,39 @@
+# Corre la prueba automática del módulo en cada push y pull request.
+name: pruebas-odoo
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: odoo
+          POSTGRES_PASSWORD: odoo
+          POSTGRES_DB: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U odoo" --health-interval 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Descargar Odoo 18 Community
+        run: git clone --depth 1 -b 18.0 https://github.com/odoo/odoo.git /tmp/odoo
+      - name: Dependencias
+        run: |
+          sudo apt-get update && sudo apt-get install -y libldap2-dev libsasl2-dev
+          pip install -r /tmp/odoo/requirements.txt
+      - name: Prueba automática
+        env:
+          PGHOST: localhost
+          PGUSER: odoo
+          PGPASSWORD: odoo
+        run: |
+          python /tmp/odoo/odoo-bin --addons-path=/tmp/odoo/addons,addons \
+            -d ci -i nexa_materiales --test-enable --test-tags /nexa_materiales \
+            --stop-after-init --without-demo=all 2>&1 | tee test.log
+          grep -q "0 failed, 0 error(s)" test.log

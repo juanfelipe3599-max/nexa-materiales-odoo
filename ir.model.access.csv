@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_material_consulta,material consulta,model_nexa_material,group_materiales_consulta,1,0,0,0
+access_material_compras,material compras,model_nexa_material,group_materiales_compras,1,1,1,0
+access_precio_compra_consulta,precio compra consulta,model_nexa_precio_compra,group_materiales_consulta,1,0,0,0
+access_precio_compra_compras,precio compra compras,model_nexa_precio_compra,group_materiales_compras,1,1,1,0

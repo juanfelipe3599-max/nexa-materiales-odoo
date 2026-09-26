@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="nexa_precio_compra_view_list" model="ir.ui.view">
+        <field name="name">nexa.precio.compra.list</field>
+        <field name="model">nexa.precio.compra</field>
+        <field name="arch" type="xml">
+            <list string="Precios de compra" decoration-danger="es_desvio">
+                <field name="fecha"/>
+                <field name="material_id"/>
+                <field name="proveedor"/>
+                <field name="cantidad"/>
+                <field name="unidad_medida" optional="show"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="precio_unitario"/>
+                <field name="variacion_pct" optional="show"/>
+                <field name="es_desvio" widget="boolean"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="nexa_precio_compra_view_form" model="ir.ui.view">
+        <field name="name">nexa.precio.compra.form</field>
+        <field name="model">nexa.precio.compra</field>
+        <field name="arch" type="xml">
+            <form string="Precio de compra">
+                <sheet>
+                    <div class="alert alert-danger mb-3" role="alert" invisible="not es_desvio">
+                        Esta compra varía más de 15 % frente a la compra anterior del mismo material.
+                    </div>
+                    <group>
+                        <group>
+                            <field name="material_id" options="{'no_create': True}"/>
+                            <field name="fecha"/>
+                            <field name="proveedor"/>
+                        </group>
+                        <group>
+                            <field name="cantidad"/>
+                            <field name="unidad_medida"/>
+                            <field name="currency_id" groups="base.group_multi_currency"/>
+                            <field name="precio_unitario"/>
+                            <field name="variacion_pct"/>
+                            <field name="es_desvio"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="nexa_precio_compra_view_search" model="ir.ui.view">
+        <field name="name">nexa.precio.compra.search</field>
+        <field name="model">nexa.precio.compra</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="material_id"/>
+                <field name="proveedor"/>
+                <filter name="desvio" string="En desvío" domain="[('es_desvio', '=', True)]"/>
+                <separator/>
+                <filter name="fecha" string="Fecha" date="fecha"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_material" string="Material" context="{'group_by': 'material_id'}"/>
+                    <filter name="group_proveedor" string="Proveedor" context="{'group_by': 'proveedor'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="nexa_precio_compra_action" model="ir.actions.act_window">
+        <field name="name">Precios de compra</field>
+        <field name="res_model">nexa.precio.compra</field>
+        <field name="view_mode">list,form</field>
+        <field name="mobile_view_mode">list</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aún no hay precios de compra registrados</p>
+            <p>Registre el precio de cada compra para que el material tenga precio vigente.</p>
+        </field>
+    </record>
+</odoo>

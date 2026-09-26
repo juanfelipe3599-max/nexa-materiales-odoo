@@ -1,0 +1,40 @@
+Servidor: http://localhost:8069  base: nexa_repo
+
+1) Compras crea un material y dos compras (100 y 130) por API
+  precio_vigente=130.0  ultima_compra_es_desvio=True  compra2.es_desvio=True
+
+2) Consulta SÍ puede leer
+  leído: [{'id': 3, 'codigo': 'DEMO-API-20260926-1874', 'precio_vigente': 130.0}]
+
+3) Consulta intenta escribir por XML-RPC (todo debe ser rechazado)
+  RECHAZADO  crear material
+             servidor: Póngase en contacto con su administrador para solicitar acceso si es necesario.
+  RECHAZADO  editar nombre
+             servidor: Póngase en contacto con su administrador para solicitar acceso si es necesario.
+  RECHAZADO  archivar (active=False)
+             servidor: Póngase en contacto con su administrador para solicitar acceso si es necesario.
+  RECHAZADO  método action_archive
+             servidor: Póngase en contacto con su administrador para solicitar acceso si es necesario.
+  RECHAZADO  borrar material
+             servidor: Los materiales no se borran porque presupuestos y compras los referencian. Use la acción 'Archivar' para desactivarlo.
+  RECHAZADO  registrar compra
+             servidor: Póngase en contacto con su administrador para solicitar acceso si es necesario.
+  RECHAZADO  editar precio de una compra
+             servidor: Póngase en contacto con su administrador para solicitar acceso si es necesario.
+
+4) Consulta intenta escribir por JSON-RPC
+  RECHAZADO  editar nombre
+             servidor: No tienes permiso para modificar registros "Material" (nexa.material).
+
+5) Ni siquiera Compras puede escribir campos calculados ni borrar
+  RECHAZADO  Compras escribe precio_vigente a mano
+             servidor: Estos campos se calculan automáticamente y no se pueden escribir: precio_vigente
+  RECHAZADO  Compras escribe es_desvio a mano
+             servidor: Estos campos se calculan automáticamente y no se pueden escribir: es_desvio
+  RECHAZADO  Compras borra el material
+             servidor: Los materiales no se borran porque presupuestos y compras los referencian. Use la acción 'Archivar' para desactivarlo.
+
+Verificación final: el nombre sigue siendo 'Material demo API'
+Limpieza: Compras archivó el material de demostración (no se borra).
+
+RESULTADO: OK — ningún intento no autorizado fue aceptado
